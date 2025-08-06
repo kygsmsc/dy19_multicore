@@ -55,12 +55,15 @@ retro_input_state_cb	= 0x8035d364;
 retro_environment_cb	= 0x8035d3a8;
 
 run_emulator	= 0x8035d590;
+run_emulator_menu = 0x80354bd8;
 run_gba			= 0x8035e99c;
 
 set_keymap      = 0x8035d080;
 
 /* .data */
 RAMSIZE	= 0x80be5e74;
+
+g_battery_level = 0x80be60dc;
 
 g_errno	= 0x80be6618;
 

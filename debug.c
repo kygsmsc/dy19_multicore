@@ -102,51 +102,60 @@ void lcd_send_data(unsigned short data)
 	lcd_send(data);
 }
 
-static void lcd_flush(unsigned short text_color, unsigned short background_color)
+// 【新增辅助函数】：转换RGB565颜色格式（解决颜色镜像，BGR <-> RGB）
+static unsigned short rgb565_swap_bgr(unsigned short color)
+{
+	// 提取RGB565中的R(5位)、G(6位)、B(5位)
+	unsigned short r = (color >> 11) & 0x1F;
+	unsigned short g = (color >> 5) & 0x3F;
+	unsigned short b = color & 0x1F;
+	// 重新组合为BGR565（解决颜色镜像），返回修正后的颜色
+	return (b << 11) | (g << 5) | r;
+}
+
+static void lcd_flush(unsigned short background_color)
 {
 	lcd_pinmux_gpio();
 
 	// applicable ONLY to SF2000's screen FIXME
-	lcd_send_cmd(0x36); // MADCTL
-	lcd_send_data(0x60); // MX (X mirror) MV (rotation)
+	lcd_send_cmd(0x36); // MADCTL（内存访问控制，控制屏幕镜像/旋转）
+	// 【修改】：原0x60（MX=1 左右镜像、MV=1 行列交换），改为0x00（取消所有镜像和不必要旋转）
+	// 若0x00仍有上下镜像，可尝试改为0x80（MY=1 仅行反转，根据屏幕微调）
+	lcd_send_data(0x00); 
 
-	lcd_send_cmd(0x2a); // CASET
+	lcd_send_cmd(0x2a); // CASET（列地址范围）
 	lcd_send_data(0);
 	lcd_send_data(0);
 	lcd_send_data((320 - 1) >> 8);
 	lcd_send_data((320 - 1) & 255);
 
-	lcd_send_cmd(0x2b); // RASET
+	lcd_send_cmd(0x2b); // RASET（行地址范围）
 	lcd_send_data(0);
 	lcd_send_data(0);
 	lcd_send_data((240 - 1) >> 8);
 	lcd_send_data((240 - 1) & 255);
 
-	lcd_send_cmd(0x2c); // RAMWR
+	lcd_send_cmd(0x2c); // RAMWR（写入显示RAM）
+	// 【修改】：修正背景色格式（解决颜色镜像）
+	unsigned short corrected_bg = rgb565_swap_bgr(background_color);
 	for (unsigned y = 0; y < 240; y++) {
 		for (unsigned x = 0; x < 320; x++) {
-			unsigned row = y / FONT_HEIGHT;
-			unsigned col = x / FONT_WIDTH_STRIDE;
-
-			unsigned char symbol_index = ' '; // default to blank
-
-			if (row < ROWS && col < COLS)
-				symbol_index = lcd_buf[row * COLS + col];
-
-			//unsigned symbol_index = lcd_buf[(y / FONT_HEIGHT) * COLS + (x / FONT_WIDTH_STRIDE)];
+			unsigned symbol_index = lcd_buf[(y / FONT_HEIGHT) * COLS + (x / FONT_WIDTH_STRIDE)];
 			unsigned i = (x % FONT_WIDTH_STRIDE), j = y % FONT_HEIGHT;
 			unsigned char rem = 1 << ((i + j * FONT_WIDTH) & 7);
 			unsigned offset = (i + j * FONT_WIDTH) >> 3;
 
 			if (i < FONT_WIDTH && (lcd_font[FONT_OFFSET(symbol_index) + offset] & rem) > 0)
-				lcd_send_data(text_color);
+				// 【修改】：修正前景色（白色）格式（解决颜色镜像）
+				lcd_send_data(rgb565_swap_bgr(0xffff)); 
 			else
-				lcd_send_data(background_color);
+				// 发送修正后的背景色
+				lcd_send_data(corrected_bg);
 		}
 	}
 }
 
-void dbg_show_noblock(unsigned short text_color, unsigned short background_color, const char *fmt, ...)
+void dbg_show_noblock(unsigned short background_color, const char *fmt, ...)
 {
 	os_disable_interrupt();
 	lcd_init();
@@ -155,10 +164,10 @@ void dbg_show_noblock(unsigned short text_color, unsigned short background_color
 	lcd_vprintf(fmt, ap);
 	va_end(ap);
 
-	for (int i=0; i<15; i++)
+	for (int i=0; i<42; i++)
 	{
 		lcd_printf(".");
-		lcd_flush(text_color, background_color);
+		lcd_flush(background_color);
 	}
 
 	os_enable_interrupt();
@@ -175,7 +184,8 @@ void lcd_bsod(const char *fmt, ...)
 	lcd_vprintf(fmt, ap);
 	va_end(ap);
 
-	lcd_flush(0xffff, 0x1f); // White text, Blue background 
+	// 【修改】：BSOD的蓝色背景色也会被修正，保持预期的蓝色显示
+	lcd_flush(0x1f); // blue
 	do {
 	} while (1);
 }

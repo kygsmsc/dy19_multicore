@@ -31,7 +31,7 @@ jobs:
         wget https://github.com/Dteyn/Datafrog_SF2000_Vanilla/releases/download/v1.6/bisrv.zip
         unzip bisrv.zip
         # 假设解压后得到的文件是 BISRV.ASD，根据实际情况调整
-        cp BISRV.ASD bisrv_08_03.asd
+        cp bisrv.asd bisrv_08_03.asd
 
     - name: Build working cores
       run: |

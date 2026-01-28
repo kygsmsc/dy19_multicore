@@ -338,7 +338,7 @@ static void lcd_memory_data_access_ctl(uint8_t data)
 	lcd_pinmux_gpio();
 
 	lcd_send_cmd(0x36); // MADCTL
-	lcd_send_data(data);
+	lcd_send_data(data); // 核心修改：传入修复后的 MADCTL 值
 
 	os_enable_interrupt();
 }
@@ -372,18 +372,24 @@ void video_options(config_file_t *conf)
 	m_osd_dev = dev_get_by_id(HLD_DEV_TYPE_OSD, 0);
 	m_vpo_dev = dev_get_by_id(HLD_DEV_TYPE_DIS, 0);
 
+	// ========== 关键修改1：正常模式（DISABLED/FAST）修复上下、左右、颜色反色 ==========
 	if (tearing_fix == DISABLED) {
 		patch__get_vp_init_low_lcd_para(VPO_RGB_CLOCK_6_6M,
 			444, 304, 320, 240
 		);
 		apply_rgb_timings();
+		// MADCTL = 0x78：修复上下颠倒（MY=1）、左右镜像（MX=1）、颜色反色（RGB=1）
+		lcd_memory_data_access_ctl(0x78);
 	}
 	else if (tearing_fix == FAST) {
 		patch__get_vp_init_low_lcd_para(rgb_clock,
 			h_total_len, v_total_len, 320, 240
 		);
 		apply_rgb_timings();
+		// MADCTL = 0x78：同步修复正常模式的所有显示问题
+		lcd_memory_data_access_ctl(0x78);
 	}
+	// ========== 关键修改2：ROTATE 模式修复上下、左右、颜色反色 ==========
 	else if (tearing_fix == ROTATE) {
 		patch__get_vp_init_low_lcd_para(rgb_clock,
 			v_total_len, h_total_len, 240, 320
@@ -391,7 +397,8 @@ void video_options(config_file_t *conf)
 		apply_rgb_timings();
 
 		patch__st7789v_caset_raset(240, 320);
-		lcd_memory_data_access_ctl(0); // frame memory writes == scan order
+		// MADCTL = 0x78：旋转模式下同样修复上下、左右、颜色反色
+		lcd_memory_data_access_ctl(0x78); // frame memory writes == scan order
 
 		swap_region_width_height(); // also clears garbled "Loading..."
 
@@ -418,7 +425,8 @@ void video_cleanup(void)
 	apply_rgb_timings();
 
 	patch__st7789v_caset_raset(320, 240);
-	lcd_memory_data_access_ctl(0x60); // only for SF2000 FIXME
+	// ========== 关键修改3：退出旋转模式时，恢复修复后的正常显示（0x78） ==========
+	lcd_memory_data_access_ctl(0x78); // 原 0x60，替换为修复后的 MADCTL 值
 	// fixable by parsing m_st7789v_init
 
 	swap_region_width_height(); // second time thus cancels out

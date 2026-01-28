@@ -1,79 +1,63 @@
-# dy19_multicore 固件自动编译&发布工作流
-name: Build DY19 Firmware & Release
+name: Build and Release Multicore
 
-# 触发条件：推送到main/master分支 + 手动触发
 on:
-  #push:
-    #branches: [ main, master ]
-  workflow_dispatch: # 手动触发开关，在GitHub Actions页面可手动运行
-
-# 工作流权限（允许创建发布版、上传资产）
-permissions:
-  contents: write
-  packages: write
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-      # 步骤1：拉取项目源码
-      - name: Checkout Source Code
-       run: |
-           mkdir -p /home/$USER/DY_19 && cd /home/$USER/DY_19
-           git clone --recurse-submodules --shallow-submodules https://github.com/kygsmsc/dy19_multicore
-           cd dy19_multicore
-           cd /home/$USER/DY_19/dy19_multicore
-           chmod +x install-toolchain.sh
-      
-      # 步骤2：安装嵌入式编译依赖（适配ARM/MIPS等交叉编译，兼容dy19_multicore）
-      - name: Install Build Dependencies
-        run: |
-          sudo apt update -y
-          sudo apt install -y build-essential gcc g++ make cmake git wget unzip \
-          gcc-arm-linux-gnueabihf gcc-mipsel-linux-gnu binutils-arm-linux-gnueabihf \
-          libc6-dev-armhf-cross rsync bc bison flex libssl-dev
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 步骤3：编译项目固件（调用项目原生Makefile，适配dy19_multicore构建逻辑）
-      - name: Build DY19 Firmware
-        run: |
-          chmod +x ./build.sh || chmod +x ./Makefile # 赋予执行权限
-          make clean # 清理旧编译产物
-          make -j$(nproc) # 多线程编译（nproc自动获取CPU核心数）
+    - name: Set up environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential git wget unzip
 
-      # 步骤4：查找编译产物并打包为ZIP（适配嵌入式固件常见输出路径）
-      - name: Package Firmware to ZIP
-        id: package
-        run: |
-          # 定义固件输出目录（适配dy19_multicore，可根据实际调整）
-          FIRMWARE_DIR="./output" || FIRMWARE_DIR="./build" || FIRMWARE_DIR="./bin"
-          # 若以上目录不存在，自动查找根目录下的固件文件（bin/elf/img/rom格式）
-          if [ ! -d "$FIRMWARE_DIR" ]; then
-            mkdir -p ./firmware_temp
-            cp -rf $(find . -name "*.bin" -o -name "*.elf" -o -name "*.img" -o -name "*.rom" -o -name "*.fw") ./firmware_temp/
-            FIRMWARE_DIR="./firmware_temp"
-          fi
-          # 定义打包文件名（含提交ID，便于区分版本）
-          COMMIT_ID=$(git rev-parse --short HEAD)
-          ZIP_NAME="dy19-firmware-${COMMIT_ID}-$(date +%Y%m%d).zip"
-          # 打包固件目录下所有文件
-          zip -r "${ZIP_NAME}" "${FIRMWARE_DIR}/"
-          # 输出变量，供后续发布使用
-          echo "zip_name=${ZIP_NAME}" >> $GITHUB_OUTPUT
-          echo "firmware_dir=${FIRMWARE_DIR}" >> $GITHUB_OUTPUT
+    - name: Install toolchain
+      run: |
+        chmod +x install-toolchain.sh
+        ./install-toolchain.sh
 
-      # 步骤5：创建GitHub发布版并上传固件包
-      - name: Create Release & Upload Firmware
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: firmware-${{ github.run_id }}-${{ github.sha }} # 发布版标签（唯一）
-          name: DY19 Firmware Build ${{ github.run_id }} (${{ github.sha }}) # 发布版名称
-          body: |
-            自动编译固件：dy19_multicore
-            编译时间：${{ steps.package.outputs.build_time }}
-            Git提交ID：${{ github.sha }}
-            编译触发：${{ github.event_name == 'push' && '代码推送' || '手动触发' }}
-          files: ${{ steps.package.outputs.zip_name }} # 上传的ZIP固件包
-          draft: false # 非草稿版
-          prerelease: false # 非预发布版
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub自动生成的令牌，无需手动配置
+    - name: Download and extract bisrv.zip
+      run: |
+        wget https://github.com/Dteyn/Datafrog_SF2000_Vanilla/releases/download/v1.6/bisrv.zip
+        unzip bisrv.zip
+        # 假设解压后得到的文件是 BISRV.ASD，根据实际情况调整
+        cp BISRV.ASD bisrv_08_03.asd
+
+    - name: Build working cores
+      run: |
+        chmod +x buildcoresworking.sh
+        ./buildcoresworking.sh
+
+    - name: Create sdcard directory structure
+      run: |
+        mkdir -p sdcard/cores
+        mkdir -p sdcard/roms
+        # 复制构建好的核心文件到 sdcard/cores 目录
+        find . -name "*.core" -exec cp {} sdcard/cores/ \;
+        # 复制其他必要文件
+        cp -r patches sdcard/ 2>/dev/null || true
+        cp README.md sdcard/
+
+    - name: Create zip archive
+      run: |
+        cd sdcard
+        zip -r ../dy19_multicore_sdcard.zip .
+        cd ..
+
+    - name: Create release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dy19_multicore_sdcard.zip
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

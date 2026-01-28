@@ -4,6 +4,12 @@ on:
   push:
     tags: [ "v*" ]
   workflow_dispatch:
+    inputs:  # 新增：手动触发时的输入参数，让用户指定标签
+      releaseTag:
+        description: 'Release tag name (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+        type: string
 
 jobs:
   build:
@@ -59,5 +65,6 @@ jobs:
       with:
         files: dy19_multicore_sdcard.zip
         generate_release_notes: true
+        tag_name: ${{ github.event.inputs.releaseTag || github.ref_name }}  # 新增：优先使用手动输入的标签，否则使用推送的标签
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -18,11 +18,13 @@ jobs:
     steps:
       # 步骤1：拉取项目源码
       - name: Checkout Source Code
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive' # 拉取子模块（嵌入式项目必备）
-          fetch-depth: 0
-
+       run: |
+           mkdir -p /home/$USER/DY_19 && cd /home/$USER/DY_19
+           git clone --recurse-submodules --shallow-submodules https://github.com/kygsmsc/dy19_multicore
+           cd dy19_multicore
+           cd /home/$USER/DY_19/dy19_multicore
+           chmod +x install-toolchain.sh
+      
       # 步骤2：安装嵌入式编译依赖（适配ARM/MIPS等交叉编译，兼容dy19_multicore）
       - name: Install Build Dependencies
         run: |

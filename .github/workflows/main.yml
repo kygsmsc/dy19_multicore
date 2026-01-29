@@ -4,11 +4,21 @@ on:
   push:
     tags: [ "v*" ]
   workflow_dispatch:
-    inputs:  # 新增：手动触发时的输入参数，让用户指定标签
+    inputs:
+      source_branch:
+        description: "请选择游戏机型号"
+        required: false
+        default: "DY-19"
+        type: choice
+        options:
+          - DY-19
+          - DY-12
+          - SF2000
+          - GB300
       releaseTag:
-        description: 'Release tag name (e.g. v1.0.0)'
+        description: '发布标签名称（例如：v0.0.1）'
         required: true
-        default: 'v1.0.0'
+        default: 'v0.0.1'
         type: string
 
 jobs:
@@ -16,35 +26,67 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout repository
+    - name: 检查系统
       uses: actions/checkout@v4
       with:
         submodules: recursive
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Set up environment
+    - name: 设置编译环境
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential git wget unzip
 
-    - name: Install toolchain
+    - name: 克隆源代码- [ ${{ inputs.source_branch }} ]
+      id: codes
+      working-directory: /builder
       run: |
-        chmod +x install-toolchain.sh
+        df -hT $PWD
+        
+        # 根据游戏机型号设置对应的仓库
+        if [[ "${{ inputs.source_branch }}" == "DY-19" ]]; then
+            REPO_URL="https://github.com/Trademarked69/dy19_multicore"
+        elif [[ "${{ inputs.source_branch }}" == "DY-12" ]]; then
+            REPO_URL="https://github.com/Trademarked69/dy19_multicore" 
+        elif [[ "${{ inputs.source_branch }}" == "SF2000" ]]; then
+            REPO_URL="https://github.com/madcock/sf2000_multicore"
+        elif [[ "${{ inputs.source_branch }}" == "GB300" ]]; then
+            REPO_URL="https://github.com/tzubertowski/gb300_multicore"
+        else
+            echo "未知的游戏机型号: ${{ inputs.source_branch }}"
+            exit 1
+        fi
+        
+        echo "正在克隆 ${{ inputs.source_branch }} 多核心源代码..."
+        echo "仓库地址: $REPO_URL"
+        
+        # 克隆完整项目（包含所有子模块）
+        echo "克隆完整项目（包含所有核心）..."
+        git clone --recurse-submodules --shallow-submodules $REPO_URL multicore_project
+        
+        # 进入项目目录
+        cd multicore_project
+        
+        # 安装编译工具链
+        echo "安装编译工具链..."
         ./install-toolchain.sh
 
-    - name: Download and extract bisrv.zip
+    - name: 下载并解压 bisrv.asd 文件
+      working-directory: /builder/multicore_project
       run: |
         wget https://github.com/Dteyn/Datafrog_SF2000_Vanilla/releases/download/v1.6/bisrv.zip
         unzip bisrv.zip
         # 假设解压后得到的文件是 BISRV.ASD，根据实际情况调整
         cp bisrv.asd bisrv_08_03.asd
 
-    - name: Build working cores
+    - name: 构建模拟器核心
+      working-directory: /builder/multicore_project
       run: |
         chmod +x buildcoresworking.sh
         ./buildcoresworking.sh
 
-    - name: Create sdcard directory structure
+    - name: 创建SD卡目录结构
+      working-directory: /builder/multicore_project
       run: |
         mkdir -p sdcard/cores
         mkdir -p sdcard/roms
@@ -54,17 +96,30 @@ jobs:
         cp -r patches sdcard/ 2>/dev/null || true
         cp README.md sdcard/
 
-    - name: Create zip archive
+    - name: 创建 zip 压缩文件
+      working-directory: /builder/multicore_project
       run: |
         cd sdcard
-        zip -r ../dy19_multicore_sdcard.zip .
+        # 根据游戏机型号生成不同的zip文件名
+        if [[ "${{ inputs.source_branch }}" == "DY-19" ]]; then
+            zip -r ../${GITHUB_REPOSITORY##*/}_dy19_sdcard.zip .
+        elif [[ "${{ inputs.source_branch }}" == "DY-12" ]]; then
+            zip -r ../${GITHUB_REPOSITORY##*/}_dy12_sdcard.zip .
+        elif [[ "${{ inputs.source_branch }}" == "SF2000" ]]; then
+            zip -r ../${GITHUB_REPOSITORY##*/}_sf2000_sdcard.zip .
+        elif [[ "${{ inputs.source_branch }}" == "GB300" ]]; then
+            zip -r ../${GITHUB_REPOSITORY##*/}_gb300_sdcard.zip .
+        else
+            zip -r ../${GITHUB_REPOSITORY##*/}_multicore_sdcard.zip .
+        fi
         cd ..
 
-    - name: Create release
+    - name: 创建发布版本
       uses: softprops/action-gh-release@v2
       with:
-        files: dy19_multicore_sdcard.zip
+        files: |
+          /builder/multicore_project/*_sdcard.zip
         generate_release_notes: true
-        tag_name: ${{ github.event.inputs.releaseTag || github.ref_name }}  # 新增：优先使用手动输入的标签，否则使用推送的标签
+        tag_name: ${{ github.event.inputs.releaseTag || github.ref_name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

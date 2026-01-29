@@ -35,8 +35,6 @@ jobs:
       id: codes
       working-directory: /builder
       run: |
-        df -hT $PWD
-        
         # 根据游戏机型号设置对应的仓库
         if [[ "${{ inputs.source_branch }}" == "DY-19" ]]; then
             REPO_URL="https://github.com/Trademarked69/dy19_multicore"

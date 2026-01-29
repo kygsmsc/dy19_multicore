@@ -30,6 +30,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential git wget unzip
+        sudo mkdir -p /builder
+        sudo chown $USER:$GROUPS /builder
 
     - name: 克隆源代码- [ ${{ inputs.source_branch }} ]
       id: codes

@@ -71,8 +71,8 @@ jobs:
       run: |
          if [[ "${{ inputs.source_branch }}" == "DY-19" ]]; then
               echo "下载 DY-19 bisrv 文件..."
-              wget -O bisrv_DY19_to_SF2000_918Mhz.asd "https://raw.githubusercontent.com/kygsmsc/dy19_multicore/master/bisrv_DY19_to_SF2000_918Mhz.asd"
-              # 文件已经命名为 bisrv_DY19_to_SF2000_918Mhz.asd，无需重命名
+              wget -O bisrv_DY19_to_SF2000_918Mhz.asd "https://raw.githubusercontent.com/kygsmsc/dy19_multicore/master/DY-19_bisrv.asd"
+              # 将 DY-19_bisrv.asd 下载并重命名为 bisrv_DY19_to_SF2000_918Mhz.asd
           elif [[ "${{ inputs.source_branch }}" == "DY-12" ]]; then
               echo "下载 DY-12 bisrv 文件..."
               wget -O bisrv_DY19_to_SF2000_918Mhz.asd "https://raw.githubusercontent.com/kygsmsc/dy19_multicore/master/DY-12_bisrv.asd"

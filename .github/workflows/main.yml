@@ -35,14 +35,15 @@ jobs:
       id: codes
       working-directory: /builder
       run: |
+        df -hT $PWD
         # 根据游戏机型号设置对应的仓库
-        if [[ "${{ inputs.source_branch }}" == "DY-19" ]]; then
+        if [[ "${{ inputs.source_branch }}" == *"DY-19"* ]]; then
             REPO_URL="https://github.com/Trademarked69/dy19_multicore"
-        elif [[ "${{ inputs.source_branch }}" == "DY-12" ]]; then
+        elif [[ "${{ inputs.source_branch }}" == *"DY-12"* ]]; then
             REPO_URL="https://github.com/Trademarked69/dy19_multicore" 
-        elif [[ "${{ inputs.source_branch }}" == "SF2000" ]]; then
+        elif [[ "${{ inputs.source_branch }}" == *"SF2000"* ]]; then
             REPO_URL="https://github.com/madcock/sf2000_multicore"
-        elif [[ "${{ inputs.source_branch }}" == "GB300" ]]; then
+        elif [[ "${{ inputs.source_branch }}" == *"GB300"* ]]; then
             REPO_URL="https://github.com/tzubertowski/gb300_multicore"
         else
             echo "未知的游戏机型号: ${{ inputs.source_branch }}"

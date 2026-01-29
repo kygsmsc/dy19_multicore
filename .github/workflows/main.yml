@@ -70,20 +70,27 @@ jobs:
       working-directory: /builder/multicore_project
       run: |
          if [[ "${{ inputs.source_branch }}" == "DY-19" ]]; then
-           git archive --remote=https://github.com/kygsmsc/dy19_multicore.git DY-19_bisrv.asd | tar -x -C / 
-        elif [[ "${{ inputs.source_branch }}" == "DY-12" ]]; then
-            git archive --remote=https://github.com/kygsmsc/dy19_multicore.git DY-12_bisrv.asd | tar -x -C /
-        elif [[ "${{ inputs.source_branch }}" == "SF2000" ]]; then
-            REPO_URL="https://github.com/madcock/sf2000_multicore"
-        elif [[ "${{ inputs.source_branch }}" == "GB300" ]]; then
+              echo "下载 DY-19 bisrv 文件..."
+              wget -O bisrv_DY19_to_SF2000_918Mhz.asd "https://raw.githubusercontent.com/kygsmsc/dy19_multicore/master/bisrv_DY19_to_SF2000_918Mhz.asd"
+              # 文件已经命名为 bisrv_DY19_to_SF2000_918Mhz.asd，无需重命名
+          elif [[ "${{ inputs.source_branch }}" == "DY-12" ]]; then
+              echo "下载 DY-12 bisrv 文件..."
+              wget -O bisrv_DY19_to_SF2000_918Mhz.asd "https://raw.githubusercontent.com/kygsmsc/dy19_multicore/master/DY-12_bisrv.asd"
+              # 将 DY-12_bisrv.asd 下载并重命名为 bisrv_DY19_to_SF2000_918Mhz.asd
+          elif [[ "${{ inputs.source_branch }}" == "SF2000" ]]; then
               wget https://github.com/Dteyn/Datafrog_SF2000_Vanilla/releases/download/v1.6/bisrv.zip
               unzip bisrv.zip
-        # 假设解压后得到的文件是 BISRV.ASD，根据实际情况调整
-        cp bisrv.asd bisrv_08_03.asd
-        else
+              # 假设解压后得到的文件是 BISRV.ASD，根据实际情况调整
+              cp bisrv.asd bisrv_08_03.asd
+          elif [[ "${{ inputs.source_branch }}" == "GB300" ]]; then
+              wget https://github.com/Dteyn/Datafrog_SF2000_Vanilla/releases/download/v1.6/bisrv.zip
+              unzip bisrv.zip
+              # 假设解压后得到的文件是 BISRV.ASD，根据实际情况调整
+              cp bisrv.asd bisrv_08_03.asd
+          else
             echo "未知的游戏机型号: ${{ inputs.source_branch }}"
             exit 1
-        fi
+          fi
        
 
     - name: 构建模拟器核心

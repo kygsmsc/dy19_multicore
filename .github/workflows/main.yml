@@ -69,10 +69,22 @@ jobs:
     - name: 下载并解压 bisrv.asd 文件
       working-directory: /builder/multicore_project
       run: |
-        wget https://github.com/Dteyn/Datafrog_SF2000_Vanilla/releases/download/v1.6/bisrv.zip
-        unzip bisrv.zip
+         if [[ "${{ inputs.source_branch }}" == "DY-19" ]]; then
+           git archive --remote=https://github.com/kygsmsc/dy19_multicore.git DY-19_bisrv.asd | tar -x -C / 
+        elif [[ "${{ inputs.source_branch }}" == "DY-12" ]]; then
+            git archive --remote=https://github.com/kygsmsc/dy19_multicore.git DY-12_bisrv.asd | tar -x -C /
+        elif [[ "${{ inputs.source_branch }}" == "SF2000" ]]; then
+            REPO_URL="https://github.com/madcock/sf2000_multicore"
+        elif [[ "${{ inputs.source_branch }}" == "GB300" ]]; then
+              wget https://github.com/Dteyn/Datafrog_SF2000_Vanilla/releases/download/v1.6/bisrv.zip
+              unzip bisrv.zip
         # 假设解压后得到的文件是 BISRV.ASD，根据实际情况调整
         cp bisrv.asd bisrv_08_03.asd
+        else
+            echo "未知的游戏机型号: ${{ inputs.source_branch }}"
+            exit 1
+        fi
+       
 
     - name: 构建模拟器核心
       working-directory: /builder/multicore_project

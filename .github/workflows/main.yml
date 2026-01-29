@@ -51,11 +51,11 @@ jobs:
             exit 1
         fi
         
-        echo "正在克隆 ${{ inputs.source_branch }} 多核心源代码..."
         echo "仓库地址: $REPO_URL"
         
         # 克隆完整项目（包含所有子模块）
-        echo "克隆完整项目（包含所有核心）..."
+        echo "克隆 ${{ inputs.source_branch }} 完整项目（包含所有核心）..."
+        echo "仓库地址: $REPO_URL"
         git clone --recurse-submodules --shallow-submodules $REPO_URL multicore_project
         
         # 进入项目目录

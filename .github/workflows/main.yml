@@ -32,6 +32,9 @@ jobs:
         # git submodule update --recursive --depth 1
         sudo apt-get update
         sudo apt-get install -y build-essential git wget unzip
+        git config --global --add safe.directory '*'  # 解决权限问题
+        git --version
+        git config --list
         sudo mkdir -p /builder
         sudo chown $USER:$GROUPS /builder
 
@@ -53,13 +56,16 @@ jobs:
             echo "未知的游戏机型号: ${{ inputs.source_branch }}"
             exit 1
         fi
-        
+
+    - name: 开启git的详细输出模式，便于定位错误 (详细日志)
+      run: | 
         echo "仓库地址: $REPO_URL"
-        
         # 克隆完整项目（包含所有子模块）
         echo "克隆 ${{ inputs.source_branch }} 完整项目（包含所有核心）..."
         echo "仓库地址: $REPO_URL"
+        GIT_TRACE=1 GIT_CURL_VERBOSE=1 \
         git clone --recurse-submodules --shallow-submodules $REPO_URL multicore_project
+        continue-on-error: false  # 强制报错并输出完整日志
         
         # 进入项目目录
         cd multicore_project

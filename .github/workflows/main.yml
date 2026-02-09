@@ -27,13 +27,19 @@ jobs:
     
     steps:
     - name: 设置编译环境
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 1
+        
+    - name: 安装必要的依赖
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential git wget unzip
         sudo mkdir -p /builder
         sudo chown $USER:$GROUPS /builder
 
-    - name: 克隆源代码- [ ${{ inputs.source_branch }} ]
+    - name: 克隆源代码[ ${{ inputs.source_branch }} ]
       id: codes
       working-directory: /builder
       run: |

@@ -27,7 +27,6 @@ jobs:
     
     steps:
     - name: 设置编译环境
-      uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 1

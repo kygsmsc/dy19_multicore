@@ -45,7 +45,7 @@ jobs:
         df -hT $PWD
         # 根据游戏机型号设置对应的仓库
         if [[ "${{ inputs.source_branch }}" == "DY-19" ]]; then
-            REPO_URL="https://github.com/madcock/sf2000_multicore"
+            REPO_URL="https://github.com/Trademarked69/dy19_multicore"
         elif [[ "${{ inputs.source_branch }}" == "DY-12" ]]; then
             REPO_URL="https://github.com/Trademarked69/sf2000_multicore" 
         elif [[ "${{ inputs.source_branch }}" == "SF2000" ]]; then
@@ -77,7 +77,7 @@ jobs:
       run: |
          if [[ "${{ inputs.source_branch }}" == "DY-19" ]]; then
               echo "下载 DY-19 bisrv 文件..."
-              wget -O bisrv_08_03.asd "https://raw.githubusercontent.com/Trademarked69/Frankenstein-Froggy-Firmware/master/SF2000/bisrv_DY19_to_SF2000_918Mhz.asd"
+              wget -O bisrv_DY19_to_SF2000_918Mhz.asd "https://raw.githubusercontent.com/Trademarked69/Frankenstein-Froggy-Firmware/master/SF2000/bisrv_DY19_to_SF2000_918Mhz.asd"
               # 将 bisrv_DY19_to_SF2000_918Mhz.asd 下载并重命名为 bisrv_08_03.asd
           elif [[ "${{ inputs.source_branch }}" == "DY-12" ]]; then
               echo "下载 DY-12 bisrv 文件..."

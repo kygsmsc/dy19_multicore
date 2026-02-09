@@ -56,9 +56,7 @@ jobs:
             echo "未知的游戏机型号: ${{ inputs.source_branch }}"
             exit 1
         fi
-
-    - name: 开启git的详细输出模式，便于定位错误 (详细日志)
-      run: | 
+        
         echo "仓库地址: $REPO_URL"
         # 克隆完整项目（包含所有子模块）
         echo "克隆 ${{ inputs.source_branch }} 完整项目（包含所有核心）..."

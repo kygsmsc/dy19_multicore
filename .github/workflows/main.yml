@@ -45,9 +45,9 @@ jobs:
         df -hT $PWD
         # 根据游戏机型号设置对应的仓库
         if [[ "${{ inputs.source_branch }}" == "DY-19" ]]; then
-            REPO_URL="https://github.com/Trademarked69/sf2000_multicore"
+            REPO_URL="https://github.com/leonardothehuman/sf2000_multicore"
         elif [[ "${{ inputs.source_branch }}" == "DY-12" ]]; then
-            REPO_URL="https://github.com/Trademarked69/sf2000_multicore" 
+            REPO_URL="https://github.com/leonardothehuman/sf2000_multicore" 
         elif [[ "${{ inputs.source_branch }}" == "SF2000" ]]; then
             REPO_URL="https://github.com/Trademarked69/sf2000_multicore"
         elif [[ "${{ inputs.source_branch }}" == "GB300" ]]; then
